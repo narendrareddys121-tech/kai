@@ -20,6 +20,10 @@ import { ProductAnalysis } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
+// Image generation prompt enhancement for professional quality
+const IMAGE_PROMPT_SUFFIX = "Professional studio photography, ultra-high quality, commercial product shot, clean modern aesthetic, perfect lighting, depth of field, 8K resolution.";
+const IMAGE_FALLBACK_PROMPT_SUFFIX = "Studio lighting, commercial photography.";
+
 const ANALYSIS_SCHEMA = {
   type: Type.OBJECT,
   properties: {
@@ -76,7 +80,7 @@ async function generateProductImage(prompt: string): Promise<string | undefined>
     const response = await ai.models.generateContent({
       model: 'imagen-3.0-generate-001',
       contents: {
-        parts: [{ text: `${prompt}. Professional studio photography, ultra-high quality, commercial product shot, clean modern aesthetic, perfect lighting, depth of field, 8K resolution.` }],
+        parts: [{ text: `${prompt}. ${IMAGE_PROMPT_SUFFIX}` }],
       },
       config: {
         imageConfig: {
@@ -97,7 +101,7 @@ async function generateProductImage(prompt: string): Promise<string | undefined>
       const fallbackResponse = await ai.models.generateContent({
         model: 'gemini-2.0-flash-exp',
         contents: {
-          parts: [{ text: `Generate an image: ${prompt}. Studio lighting, commercial photography.` }],
+          parts: [{ text: `Generate an image: ${prompt}. ${IMAGE_FALLBACK_PROMPT_SUFFIX}` }],
         },
         config: {
           imageConfig: {

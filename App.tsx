@@ -80,12 +80,12 @@ const App: React.FC = () => {
               k
             </div>
             <h1 className="text-xl font-bold tracking-tight text-slate-800">
-              kai <span className="text-indigo-600 font-normal">v1.2</span>
+              kai <span className="text-indigo-600 font-normal">v2.0</span>
             </h1>
           </div>
           <div className="hidden sm:flex items-center space-x-4 text-sm font-medium text-slate-500">
             <span className="flex items-center"><span className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></span>Intelligence Online</span>
-            <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-bold uppercase tracking-widest text-slate-400">Gemini Pro V3</span>
+            <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-bold uppercase tracking-widest text-slate-400">Gemini 2.0 Flash</span>
           </div>
         </div>
       </header>

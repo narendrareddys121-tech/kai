@@ -85,8 +85,12 @@ export function useVoiceInput() {
     }
 
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
+      if (recognitionRef.current && isListening) {
+        try {
+          recognitionRef.current.stop();
+        } catch (error) {
+          // Recognition may have already stopped
+        }
       }
     };
   }, []);

@@ -44,23 +44,13 @@ const NutritionChart: React.FC<Props> = ({ nutrition }) => {
             <div className="relative h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
               <div 
                 className={`absolute inset-y-0 left-0 ${item.color} rounded-full transition-all duration-700 ease-out`}
-                style={{ 
-                  width: '100%',
-                  animation: 'slideIn 0.7s ease-out'
-                }}
+                style={{ animation: 'slideIn 0.7s ease-out' }}
               />
             </div>
           </div>
         ))}
       </div>
-      
-      <style>{`
-        @keyframes slideIn {
-          from {
-            width: 0%;
-          }
-        }
-      `}</style>
+
     </div>
   );
 };

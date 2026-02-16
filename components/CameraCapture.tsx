@@ -75,7 +75,7 @@ const CameraCapture: React.FC<Props> = ({ onCapture, onClose }) => {
     return () => {
       stopCamera();
     };
-  }, []);
+  }, [startCamera, stopCamera]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">

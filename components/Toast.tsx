@@ -9,15 +9,20 @@ interface Props {
 
 const Toast: React.FC<Props> = ({ toasts, onRemove }) => {
   useEffect(() => {
+    const timers: NodeJS.Timeout[] = [];
+    
     toasts.forEach(toast => {
       if (toast.duration) {
         const timer = setTimeout(() => {
           onRemove(toast.id);
         }, toast.duration);
-        
-        return () => clearTimeout(timer);
+        timers.push(timer);
       }
     });
+    
+    return () => {
+      timers.forEach(timer => clearTimeout(timer));
+    };
   }, [toasts, onRemove]);
   
   const getToastStyles = (type: ToastMessage['type']) => {

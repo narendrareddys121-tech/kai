@@ -85,11 +85,12 @@ export function useVoiceInput() {
     }
 
     return () => {
-      if (recognitionRef.current && isListening) {
+      // Cleanup: stop recognition if it's running
+      if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
         } catch (error) {
-          // Recognition may have already stopped
+          // Recognition may have already stopped, ignore error
         }
       }
     };

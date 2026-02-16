@@ -156,7 +156,8 @@ async function retryWithBackoff<T>(
       if (errorMessage.includes('api key') || 
           errorMessage.includes('403') || 
           errorMessage.includes('401') ||
-          errorMessage.includes('safety')) {
+          errorMessage.includes('safety') ||
+          errorMessage.includes('blocked')) {
         throw lastError;
       }
       
@@ -174,9 +175,9 @@ async function retryWithBackoff<T>(
 
 async function generateProductImage(prompt: string): Promise<string | undefined> {
   try {
-    // Use Imagen model for image generation
+    // Use Imagen 4.0 model for image generation
     const response = await ai.models.generateImages({
-      model: 'imagen-3.0-generate-001',
+      model: 'imagen-4.0-generate-001',
       prompt: `${prompt}. Studio lighting, high quality, commercial photography, clean aesthetic, depth of field.`,
       config: {
         numberOfImages: 1,
@@ -189,6 +190,12 @@ async function generateProductImage(prompt: string): Promise<string | undefined>
     const imageBytes = response.generatedImages?.[0]?.image?.imageBytes;
     if (imageBytes) {
       return `data:image/png;base64,${imageBytes}`;
+    }
+    
+    // Log if image was filtered by RAI
+    const raiReason = response.generatedImages?.[0]?.raiFilteredReason;
+    if (raiReason) {
+      console.warn('Image generation filtered by RAI:', raiReason);
     }
   } catch (error) {
     console.error("Image Generation Error:", error);

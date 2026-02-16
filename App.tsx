@@ -16,7 +16,7 @@ import {
 } from './services/exportService';
 import { AnalysisState, ToastMessage, InputMode } from './types';
 import { EXAMPLE_TEMPLATES, ANALYSIS_STEPS } from './constants';
-import { generateId } from './utils';
+import { generateId, validateInput } from './utils';
 import { useTheme } from './hooks/useTheme';
 import { useVoiceInput } from './hooks/useVoiceInput';
 import { useAnalysisHistory } from './hooks/useAnalysisHistory';
@@ -87,17 +87,15 @@ const App: React.FC = () => {
   };
 
   const handleAnalyze = useCallback(async () => {
-    const trimmedInput = inputText.trim();
-    if (!trimmedInput) {
-      setState(prev => ({ ...prev, error: "Input required. Please paste or type product label text first." }));
+    // Validate input using utility function
+    const validation = validateInput(inputText);
+    if (!validation.valid) {
+      setState(prev => ({ ...prev, error: validation.error || "Invalid input" }));
+      addToast('error', validation.error || "Invalid input", 4000);
       return;
     }
 
-    if (trimmedInput.length < 10) {
-       setState(prev => ({ ...prev, error: "Insufficient data. The text provided is too short for a meaningful analysis." }));
-       return;
-    }
-
+    const trimmedInput = inputText.trim();
     setState({ isLoading: true, error: null, result: null });
     setCurrentStep(0);
 

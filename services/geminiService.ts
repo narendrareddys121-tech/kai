@@ -130,22 +130,21 @@ const ANALYSIS_SCHEMA = {
 
 async function generateProductImage(prompt: string): Promise<string | undefined> {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [{ text: `${prompt}. Studio lighting, high quality, commercial photography, clean aesthetic, depth of field.` }],
-      },
+    // Use Imagen model for image generation
+    const response = await ai.models.generateImages({
+      model: 'imagen-3.0-generate-001',
+      prompt: `${prompt}. Studio lighting, high quality, commercial photography, clean aesthetic, depth of field.`,
       config: {
-        imageConfig: {
-          aspectRatio: "1:1"
-        }
+        numberOfImages: 1,
+        aspectRatio: '1:1',
+        includeRaiReason: false,
       }
     });
 
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-      }
+    // Extract base64 image from response
+    const imageBytes = response.generatedImages?.[0]?.image?.imageBytes;
+    if (imageBytes) {
+      return `data:image/png;base64,${imageBytes}`;
     }
   } catch (error) {
     console.error("Image Generation Error:", error);
@@ -154,7 +153,7 @@ async function generateProductImage(prompt: string): Promise<string | undefined>
 }
 
 export async function analyzeProductLabel(ocrText: string): Promise<ProductAnalysis> {
-  const model = 'gemini-3-flash-preview';
+  const model = 'gemini-2.0-flash-exp';
   
   const systemInstruction = `
     You are a Cognitive Product Analysis Engine inside a next-generation consumer intelligence app.

@@ -227,7 +227,7 @@ const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [inputText, state.isLoading, handleAnalyze, handleClear, handleVoiceToggle]);
+  }, [inputText, state.isLoading, handleAnalyze, handleClear, handleVoiceToggle, toggleTheme]);
 
   return (
     <div className={`min-h-screen flex flex-col ${resolvedTheme === 'dark' ? 'bg-slate-900 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>

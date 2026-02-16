@@ -1,7 +1,19 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { analyzeProductLabel } from './services/geminiService';
-import { exportAsJSON, exportAsText, copyExecutiveSummary, shareAnalysis } from './services/exportService';
+import { 
+  exportAsJSON, 
+  exportAsText, 
+  exportAsCSV, 
+  exportAsMarkdown, 
+  exportAsHTML,
+  copyExecutiveSummary, 
+  copyFullReport,
+  shareAnalysis,
+  printReport,
+  downloadImage,
+  emailReport
+} from './services/exportService';
 import { AnalysisState, ToastMessage, InputMode } from './types';
 import { EXAMPLE_TEMPLATES, ANALYSIS_STEPS } from './constants';
 import { generateId } from './utils';
@@ -146,7 +158,7 @@ const App: React.FC = () => {
     addToast('info', 'Historical analysis loaded.', 2000);
   }, [addToast]);
 
-  const handleExport = useCallback(async (format: 'json' | 'text') => {
+  const handleExport = useCallback(async (format: 'json' | 'text' | 'csv' | 'markdown' | 'html') => {
     if (!state.result) return;
     
     try {
@@ -159,17 +171,36 @@ const App: React.FC = () => {
           exportAsText(state.result);
           addToast('success', 'Analysis exported as TXT.', 2000);
           break;
+        case 'csv':
+          exportAsCSV(state.result);
+          addToast('success', 'Analysis exported as CSV.', 2000);
+          break;
+        case 'markdown':
+          exportAsMarkdown(state.result);
+          addToast('success', 'Analysis exported as Markdown.', 2000);
+          break;
+        case 'html':
+          exportAsHTML(state.result);
+          addToast('success', 'Analysis exported as HTML.', 2000);
+          break;
       }
     } catch (err) {
-      addToast('error', 'Action failed. Please try again.', 3000);
+      addToast('error', 'Export failed. Please try again.', 3000);
     }
   }, [state.result, addToast]);
 
-  const handleCopy = useCallback(async () => {
+  const handleCopy = useCallback(async (type: 'summary' | 'full') => {
     if (!state.result) return;
     try {
-      await copyExecutiveSummary(state.result);
-      addToast('success', 'Summary copied to clipboard.', 2000);
+      const success = type === 'summary' 
+        ? await copyExecutiveSummary(state.result)
+        : await copyFullReport(state.result);
+      
+      if (success) {
+        addToast('success', `${type === 'summary' ? 'Summary' : 'Full report'} copied to clipboard.`, 2000);
+      } else {
+        addToast('error', 'Copy failed. Please try again.', 3000);
+      }
     } catch (err) {
       addToast('error', 'Copy failed. Please try again.', 3000);
     }
@@ -178,10 +209,39 @@ const App: React.FC = () => {
   const handleShare = useCallback(async () => {
     if (!state.result) return;
     try {
-      await shareAnalysis(state.result);
-      addToast('success', 'Analysis shared successfully.', 2000);
+      const success = await shareAnalysis(state.result);
+      if (success) {
+        addToast('success', 'Analysis shared successfully.', 2000);
+      } else {
+        addToast('info', 'Share cancelled or not supported.', 2000);
+      }
     } catch (err) {
       addToast('error', 'Share failed. Please try again.', 3000);
+    }
+  }, [state.result, addToast]);
+
+  const handlePrint = useCallback(() => {
+    printReport();
+    addToast('info', 'Opening print dialog...', 2000);
+  }, [addToast]);
+
+  const handleDownloadImage = useCallback(() => {
+    if (!state.result?.generatedImageUrl) return;
+    try {
+      downloadImage(state.result.generatedImageUrl);
+      addToast('success', 'Image download started.', 2000);
+    } catch (err) {
+      addToast('error', 'Image download failed.', 3000);
+    }
+  }, [state.result, addToast]);
+
+  const handleEmail = useCallback(() => {
+    if (!state.result) return;
+    try {
+      emailReport(state.result);
+      addToast('info', 'Opening email client...', 2000);
+    } catch (err) {
+      addToast('error', 'Email action failed.', 3000);
     }
   }, [state.result, addToast]);
 
@@ -445,6 +505,9 @@ const App: React.FC = () => {
             onExport={handleExport}
             onCopy={handleCopy}
             onShare={handleShare}
+            onPrint={handlePrint}
+            onDownloadImage={handleDownloadImage}
+            onEmail={handleEmail}
           />
           <button
             onClick={() => setShowHistory(!showHistory)}

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { analyzeProductLabel } from './services/geminiService';
 import { 
   exportAsJSON, 
@@ -20,13 +20,15 @@ import { generateId } from './utils';
 import { useTheme } from './hooks/useTheme';
 import { useVoiceInput } from './hooks/useVoiceInput';
 import { useAnalysisHistory } from './hooks/useAnalysisHistory';
-import AnalysisResult from './components/AnalysisResult';
 import Toast from './components/Toast';
 import ThemeToggle from './components/ThemeToggle';
 import LoadingSkeleton from './components/LoadingSkeleton';
-import CameraCapture from './components/CameraCapture';
-import AnalysisHistory from './components/AnalysisHistory';
-import ExportMenu from './components/ExportMenu';
+
+// Lazy load heavy components
+const AnalysisResult = lazy(() => import('./components/AnalysisResult'));
+const CameraCapture = lazy(() => import('./components/CameraCapture'));
+const AnalysisHistory = lazy(() => import('./components/AnalysisHistory'));
+const ExportMenu = lazy(() => import('./components/ExportMenu'));
 
 const App: React.FC = () => {
   const { theme, resolvedTheme, toggleTheme } = useTheme();
@@ -465,7 +467,9 @@ const App: React.FC = () => {
         {/* Results Section */}
         {state.result && (
           <section className="pb-20">
-            <AnalysisResult data={state.result} />
+            <Suspense fallback={<LoadingSkeleton steps={['Loading results...']} currentStep={0} />}>
+              <AnalysisResult data={state.result} />
+            </Suspense>
           </section>
         )}
 
@@ -500,15 +504,17 @@ const App: React.FC = () => {
       {/* Floating Action Buttons */}
       {state.result && (
         <div className="fixed bottom-8 right-8 flex flex-col space-y-4 z-40">
-          <ExportMenu
-            analysis={state.result}
-            onExport={handleExport}
-            onCopy={handleCopy}
-            onShare={handleShare}
-            onPrint={handlePrint}
-            onDownloadImage={handleDownloadImage}
-            onEmail={handleEmail}
-          />
+          <Suspense fallback={<div className="w-14 h-14 bg-slate-700 rounded-full animate-pulse"></div>}>
+            <ExportMenu
+              analysis={state.result}
+              onExport={handleExport}
+              onCopy={handleCopy}
+              onShare={handleShare}
+              onPrint={handlePrint}
+              onDownloadImage={handleDownloadImage}
+              onEmail={handleEmail}
+            />
+          </Suspense>
           <button
             onClick={() => setShowHistory(!showHistory)}
             className="w-14 h-14 bg-slate-700 hover:bg-slate-600 text-white rounded-full shadow-2xl flex items-center justify-center transition-all transform hover:scale-110"
@@ -521,21 +527,25 @@ const App: React.FC = () => {
 
       {/* History Sidebar */}
       {showHistory && (
-        <AnalysisHistory
-          history={history}
-          onSelect={handleHistorySelect}
-          onDelete={removeFromHistory}
-          onClear={clearHistory}
-          onClose={() => setShowHistory(false)}
-        />
+        <Suspense fallback={<div className={`fixed inset-y-0 right-0 w-96 shadow-2xl ${resolvedTheme === 'dark' ? 'bg-slate-800' : 'bg-white'}`}></div>}>
+          <AnalysisHistory
+            history={history}
+            onSelect={handleHistorySelect}
+            onDelete={removeFromHistory}
+            onClear={clearHistory}
+            onClose={() => setShowHistory(false)}
+          />
+        </Suspense>
       )}
 
       {/* Camera Modal */}
       {showCamera && (
-        <CameraCapture
-          onCapture={handleCameraCapture}
-          onClose={() => setShowCamera(false)}
-        />
+        <Suspense fallback={<div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"><div className="text-white text-lg">Loading camera...</div></div>}>
+          <CameraCapture
+            onCapture={handleCameraCapture}
+            onClose={() => setShowCamera(false)}
+          />
+        </Suspense>
       )}
 
       {/* Toast Notifications */}

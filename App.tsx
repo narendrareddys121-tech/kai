@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
-import LoginPage from './components/LoginPage';
+import CyberpunkLoginPage from './components/CyberpunkLoginPage';
 import MainApp from './MainApp';
 
 const AppContent: React.FC = () => {
@@ -21,7 +21,7 @@ const AppContent: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage />;
+    return <CyberpunkLoginPage />;
   }
 
   return <MainApp />;

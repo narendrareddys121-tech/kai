@@ -95,3 +95,42 @@ export interface ToastMessage {
   message: string;
   duration?: number;
 }
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  createdAt: number;
+  preferences?: UserPreferences;
+  subscription?: 'free' | 'pro' | 'enterprise';
+}
+
+export interface UserPreferences {
+  theme: Theme;
+  notifications: boolean;
+  language: string;
+  defaultAnalysisMode: InputMode;
+}
+
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
+
+export interface ProductComparison {
+  products: ProductAnalysis[];
+  comparisonId: string;
+  createdAt: number;
+}
+
+export interface Bookmark {
+  id: string;
+  analysisId: string;
+  inputText: string;
+  result: ProductAnalysis;
+  tags: string[];
+  notes: string;
+  createdAt: number;
+}

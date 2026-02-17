@@ -67,7 +67,10 @@ export const MAX_HISTORY_ITEMS = 50;
 // Local storage keys
 export const STORAGE_KEYS = {
   theme: 'kai-theme',
-  history: 'kai-analysis-history'
+  history: 'kai-analysis-history',
+  user: 'kai-user',
+  bookmarks: 'kai-bookmarks',
+  preferences: 'kai-preferences'
 };
 
 // Score thresholds

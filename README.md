@@ -231,9 +231,26 @@ Contributions are welcome! Please follow these guidelines:
 - Firefox requires additional configuration
 
 ### API Errors
-- Verify your Gemini API key is correct
+- Verify your Gemini API key is correct in `.env.local`
 - Check API quota limits in Google AI Studio
 - Ensure stable internet connection
+- The app includes automatic retry logic for transient failures
+
+---
+
+## 🚀 Recent Improvements
+
+### v1.2 Updates
+- ✅ Fixed Gemini API integration with correct model names
+- ✅ Fixed image generation using Imagen 3.0 model
+- ✅ Added retry logic with exponential backoff for API calls
+- ✅ Improved error handling with user-friendly messages
+- ✅ Optimized bundle size (555KB → 237KB main bundle)
+- ✅ Implemented code splitting with lazy loading
+- ✅ Added PWA support with manifest.json
+- ✅ Enhanced input validation and sanitization
+- ✅ Improved SEO with meta tags
+- ✅ Better API key validation and warnings
 
 ---
 

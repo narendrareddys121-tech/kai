@@ -2,7 +2,16 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ProductAnalysis } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Initialize AI client with API key from environment
+const getApiKey = (): string => {
+  const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+  if (!apiKey) {
+    console.warn('⚠️ Gemini API key not found. Please set GEMINI_API_KEY in .env.local');
+  }
+  return apiKey;
+};
+
+const ai = new GoogleGenAI({ apiKey: getApiKey() });
 
 const ANALYSIS_SCHEMA = {
   type: Type.OBJECT,
@@ -128,24 +137,65 @@ const ANALYSIS_SCHEMA = {
   ]
 };
 
+// Retry helper function
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error | undefined;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error as Error;
+      
+      // Don't retry on certain errors
+      const errorMessage = lastError.message.toLowerCase();
+      if (errorMessage.includes('api key') || 
+          errorMessage.includes('403') || 
+          errorMessage.includes('401') ||
+          errorMessage.includes('safety') ||
+          errorMessage.includes('blocked')) {
+        throw lastError;
+      }
+      
+      // Wait before retrying (exponential backoff)
+      if (attempt < maxRetries - 1) {
+        const delay = baseDelay * Math.pow(2, attempt);
+        console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError || new Error('Max retries exceeded');
+}
+
 async function generateProductImage(prompt: string): Promise<string | undefined> {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [{ text: `${prompt}. Studio lighting, high quality, commercial photography, clean aesthetic, depth of field.` }],
-      },
+    // Use Imagen 4.0 model for image generation
+    const response = await ai.models.generateImages({
+      model: 'imagen-4.0-generate-001',
+      prompt: `${prompt}. Studio lighting, high quality, commercial photography, clean aesthetic, depth of field.`,
       config: {
-        imageConfig: {
-          aspectRatio: "1:1"
-        }
+        numberOfImages: 1,
+        aspectRatio: '1:1',
+        includeRaiReason: false,
       }
     });
 
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-      }
+    // Extract base64 image from response
+    const imageBytes = response.generatedImages?.[0]?.image?.imageBytes;
+    if (imageBytes) {
+      return `data:image/png;base64,${imageBytes}`;
+    }
+    
+    // Log if image was filtered by RAI
+    const raiReason = response.generatedImages?.[0]?.raiFilteredReason;
+    if (raiReason) {
+      console.warn('Image generation filtered by RAI:', raiReason);
     }
   } catch (error) {
     console.error("Image Generation Error:", error);
@@ -154,7 +204,7 @@ async function generateProductImage(prompt: string): Promise<string | undefined>
 }
 
 export async function analyzeProductLabel(ocrText: string): Promise<ProductAnalysis> {
-  const model = 'gemini-3-flash-preview';
+  const model = 'gemini-2.0-flash-exp';
   
   const systemInstruction = `
     You are a Cognitive Product Analysis Engine inside a next-generation consumer intelligence app.
@@ -199,35 +249,55 @@ export async function analyzeProductLabel(ocrText: string): Promise<ProductAnaly
   `;
 
   try {
-    // Step 1: Textual Analysis
-    const textResponse = await ai.models.generateContent({
-      model: model,
-      contents: [{ parts: [{ text: `INPUT (OCR TEXT):\n"""\n${ocrText}\n"""` }] }],
-      config: {
-        systemInstruction: systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: ANALYSIS_SCHEMA,
-        temperature: 0.1,
-      }
+    // Step 1: Textual Analysis with retry logic
+    const textResponse = await retryWithBackoff(async () => {
+      return await ai.models.generateContent({
+        model: model,
+        contents: [{ parts: [{ text: `INPUT (OCR TEXT):\n"""\n${ocrText}\n"""` }] }],
+        config: {
+          systemInstruction: systemInstruction,
+          responseMimeType: "application/json",
+          responseSchema: ANALYSIS_SCHEMA,
+          temperature: 0.1,
+        }
+      });
     });
 
     if (!textResponse.text) {
-      throw new Error("No analysis generated.");
+      throw new Error("No analysis generated from the model.");
     }
 
     const analysis = JSON.parse(textResponse.text) as ProductAnalysis;
 
-    // Step 2: Visual Generation
+    // Step 2: Visual Generation (optional, non-blocking)
     if (analysis.visualPrompt) {
-      const imageUrl = await generateProductImage(analysis.visualPrompt);
-      if (imageUrl) {
-        analysis.generatedImageUrl = imageUrl;
+      try {
+        const imageUrl = await generateProductImage(analysis.visualPrompt);
+        if (imageUrl) {
+          analysis.generatedImageUrl = imageUrl;
+        }
+      } catch (imageError) {
+        // Log but don't fail the entire analysis if image generation fails
+        console.warn('Image generation failed, continuing without image:', imageError);
       }
     }
 
     return analysis;
   } catch (error) {
     console.error("Gemini API Error:", error);
-    throw new Error(error instanceof Error ? error.message : "Failed to analyze product label.");
+    
+    // Provide more specific error messages
+    const err = error as Error;
+    if (err.message.includes('API key')) {
+      throw new Error('Invalid or missing API key. Please check your GEMINI_API_KEY configuration.');
+    } else if (err.message.includes('quota') || err.message.includes('429')) {
+      throw new Error('API quota exceeded. Please try again later or check your API limits.');
+    } else if (err.message.includes('safety')) {
+      throw new Error('Content was blocked by safety filters. Please try different input text.');
+    } else if (err.message.includes('network') || err.message.includes('fetch')) {
+      throw new Error('Network error. Please check your internet connection and try again.');
+    }
+    
+    throw new Error(err.message || "Failed to analyze product label. Please try again.");
   }
 }
